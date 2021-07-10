@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation  xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/navHostFragment"
+    app:startDestination="@id/MoviesFragment">
+
+    <fragment
+        android:id="@+id/MoviesFragment"
+        android:name="com.unicocoder.batmanmovies.view.fragment.MoviesFragment"
+        android:label="MoviesFragment" >
+        <action
+            android:id="@+id/action_MoviesFragment_to_DetailsMovieFragment"
+            app:destination="@id/DetailsMovieFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/DetailsMovieFragment"
+        android:name="com.unicocoder.batmanmovies.view.fragment.DetailsMovieFragment"
+        android:label="DetailsMovieFragment" >
+        <action
+            android:id="@+id/action_DetailsMovieFragment_to_MoviesFragment"
+            app:destination="@id/MoviesFragment" />
+    </fragment>
+
+</navigation>

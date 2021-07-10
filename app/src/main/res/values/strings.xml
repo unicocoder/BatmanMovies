@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">BatmanMovies</string>
+    <string name="txtYear">realese date : </string>
+    <string name="detail_user_github">sdkfjskd</string>
+
+    <string name="hero_image">hero_image</string>
+
+</resources>
