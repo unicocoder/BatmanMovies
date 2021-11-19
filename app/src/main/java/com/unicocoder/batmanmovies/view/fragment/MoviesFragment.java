@@ -30,6 +30,11 @@ import com.unicocoder.batmanmovies.view.adapter.AllMoviesAdapter;
 import com.unicocoder.batmanmovies.view.adapter.AllMoviesDBAdapter;
 import com.unicocoder.batmanmovies.viewModel.MoviesViewModel;
 
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.observers.DisposableSingleObserver;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -154,6 +159,83 @@ public class MoviesFragment extends Fragment implements OnBackPressedListner {
         }
     }
 
+     private void getListHomeDataSingle() {
+        if (NetworkConnected.getInstance(requireActivity())) {
+            compositeDisposable.add( mViewModel.getMoviesSingle(apikey, s)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribeWith(new DisposableSingleObserver<Response<BatmanMovies>>() {
+                        @Override
+                        public void onSuccess(@io.reactivex.rxjava3.annotations.NonNull Response<BatmanMovies> batmanMoviesResponse) {
+                            if (batmanMoviesResponse.code() == 200 && batmanMoviesResponse.body() != null) {
+                                Log.i(TAG, "getListHomeData: data " + batmanMoviesResponse.body().getSearch().size());
+                                Log.i(TAG, "getListHomeData: code " + batmanMoviesResponse.code());
+
+                                binding.setHomeData(batmanMoviesResponse.body());
+
+                                binding.pbHomeLoading.setVisibility(View.GONE);
+                                binding.nsvHomeScroll.setVisibility(View.VISIBLE);
+
+                                if (database.userDao().countMovies() == 0) {
+                                    Batman batman = new Batman();
+                                    for (int i = 0; i < batmanMoviesResponse.body().getSearch().size(); i++) {
+                                        batman.setImdbID(batmanMoviesResponse.body().getSearch().get(i).getImdbID());
+                                        batman.setPoster(batmanMoviesResponse.body().getSearch().get(i).getPoster());
+                                        batman.setTitle(batmanMoviesResponse.body().getSearch().get(i).getTitle());
+                                        batman.setType(batmanMoviesResponse.body().getSearch().get(i).getType());
+                                        batman.setYear(batmanMoviesResponse.body().getSearch().get(i).getYear());
+                                        database.userDao().insertAll(batman);
+                                    }
+                                }
+
+//                    All Movies
+                                AllMoviesAdapter allMoviesAdapter = new AllMoviesAdapter(batmanMoviesResponse.body().getSearch(), (batmanItem, imageView) -> {
+                                    Bundle bundle = new Bundle();
+                                    bundle.putParcelable("item", batmanItem);
+                                    bundle.putString("idItem", batmanItem.getImdbID());
+
+                                    FragmentNavigator.Extras extras = new FragmentNavigator.Extras.Builder()
+                                            .addSharedElement(imageView, getString(R.string.hero_image))
+                                            .build();
+
+                                    navController.navigate(R.id.action_MoviesFragment_to_DetailsMovieFragment
+                                            , bundle
+                                            , null
+                                            , extras);
+                                });
+
+                                binding.rcMoviesShowAll.setAdapter(allMoviesAdapter);
+
+                                mViewModel.getMovies(apikey, s).removeObservers(requireActivity());
+                            }
+                        }
+
+                        @Override
+                        public void onError(@NonNull Throwable e) {
+                            ((HttpException) e).code();
+                        }
+                    }));
+
+        } else {
+
+            binding.pbHomeLoading.setVisibility(View.GONE);
+            binding.nsvHomeScroll.setVisibility(View.VISIBLE);
+            List<Batman> batmanItems = database.userDao().getAll();
+            AllMoviesDBAdapter allMoviesDBAdapter = new AllMoviesDBAdapter(batmanItems);
+            binding.rcMoviesShowAll.setAdapter(allMoviesDBAdapter);
+
+            Toast.makeText(requireActivity(), "از اتصال به شبکه اینترنت اطمینان حاصل کنید", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (compositeDisposable != null) {
+            compositeDisposable.clear();
+        }
+    }
+    
     @Override
     public boolean onBackPressed() {
         if (!doubleBackToExitPressedOnce) {
